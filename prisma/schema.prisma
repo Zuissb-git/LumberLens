@@ -1,0 +1,145 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String    @id @default(cuid())
+  name           String?
+  email          String    @unique
+  emailVerified  DateTime?
+  hashedPassword String?
+  image          String?
+  tier           String    @default("free") // free, pro, team
+  zipCode        String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  accounts       Account[]
+  sessions       Session[]
+  buildOrders    BuildOrder[]
+  priceListings  PriceListing[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Vendor {
+  id        String   @id @default(cuid())
+  name      String
+  chain     String?  // "Home Depot", "Lowe's", "Menards", "84 Lumber", null for independents
+  address   String
+  city      String
+  state     String
+  zipCode   String
+  lat       Float
+  lng       Float
+  phone     String?
+  website   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  priceListings PriceListing[]
+}
+
+model Product {
+  id            String   @id @default(cuid())
+  name          String   // e.g., "2x4x8 SPF #2"
+  species       String   // SPF, Cedar, Douglas Fir, Redwood
+  grade         String   // #1, #2, Select, Premium
+  treatment     String   // none, pressure-treated, kiln-dried
+  nominalWidth  Float    // inches (e.g., 2)
+  nominalDepth  Float    // inches (e.g., 4)
+  actualWidth   Float    // inches (e.g., 1.5)
+  actualDepth   Float    // inches (e.g., 3.5)
+  lengthFt      Float    // feet (e.g., 8)
+  boardFeet     Float    // precomputed: (nominalWidth * nominalDepth * lengthFt) / 12
+  category      String   // dimensional, decking, post, beam, plywood, trim
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  priceListings PriceListing[]
+  lineItems     BuildOrderLineItem[]
+}
+
+model PriceListing {
+  id              String   @id @default(cuid())
+  productId       String
+  vendorId        String
+  priceCents      Int      // price in cents
+  priceUnit       String   // "piece", "board_foot", "linear_foot"
+  pricePerBfCents Int?     // precomputed normalized price per board foot in cents
+  inStock         Boolean  @default(true)
+  confidence      Float    @default(1.0) // 1.0 = scraped/verified, 0.5 = user-submitted
+  source          String   @default("seed") // seed, scraped, user
+  submittedById   String?
+  notes           String?
+  expiresAt       DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  vendor      Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  submittedBy User?    @relation(fields: [submittedById], references: [id])
+}
+
+model BuildOrder {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  notes       String?
+  wasteFactor Float    @default(0.1) // 10% default
+  lastRepriced DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lineItems BuildOrderLineItem[]
+}
+
+model BuildOrderLineItem {
+  id           String @id @default(cuid())
+  buildOrderId String
+  productId    String
+  quantity     Int
+
+  buildOrder BuildOrder @relation(fields: [buildOrderId], references: [id], onDelete: Cascade)
+  product    Product    @relation(fields: [productId], references: [id])
+}
