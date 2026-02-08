@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { RepricingTable } from "@/components/build-orders/repricing-table";
+import { ExportMenu } from "@/components/build-orders/export-menu";
 import { ArrowLeft, Edit, Loader2 } from "lucide-react";
 
 interface BuildOrder {
@@ -78,9 +79,12 @@ export default function BuildOrderDetailPage({
             {order.notes && <p className="text-stone-500 mt-1">{order.notes}</p>}
           </div>
         </div>
-        <Badge variant="secondary">
-          {Math.round(order.wasteFactor * 100)}% waste factor
-        </Badge>
+        <div className="flex items-center gap-2">
+          <ExportMenu orderId={id} orderName={order.name} />
+          <Badge variant="secondary">
+            {Math.round(order.wasteFactor * 100)}% waste factor
+          </Badge>
+        </div>
       </div>
 
       {/* Line Items Summary */}

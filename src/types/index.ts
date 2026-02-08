@@ -121,6 +121,55 @@ export interface RepriceResult {
   splitSavingsCents: number;
 }
 
+// ─── Favorites ───────────────────────────────────────────
+export const ToggleFavoriteSchema = z.object({
+  productId: z.string(),
+});
+export type ToggleFavorite = z.infer<typeof ToggleFavoriteSchema>;
+
+export interface FavoriteWithPrice {
+  id: string;
+  productId: string;
+  productName: string;
+  species: string;
+  category: string;
+  lowestPriceCents: number | null;
+  vendorName: string | null;
+  createdAt: string;
+}
+
+// ─── Sharing ─────────────────────────────────────────────
+export const ShareOrderSchema = z.object({
+  enabled: z.boolean(),
+});
+export type ShareOrder = z.infer<typeof ShareOrderSchema>;
+
+export const ExportFormatSchema = z.enum(["csv"]);
+export type ExportFormat = z.infer<typeof ExportFormatSchema>;
+
+// ─── Price Alerts ────────────────────────────────────────
+export const CreateAlertSchema = z.object({
+  productId: z.string(),
+  targetPriceCents: z.number().int().min(1),
+});
+export type CreateAlert = z.infer<typeof CreateAlertSchema>;
+
+export const DeleteAlertSchema = z.object({
+  alertId: z.string(),
+});
+export type DeleteAlert = z.infer<typeof DeleteAlertSchema>;
+
+export interface PriceAlertWithProduct {
+  id: string;
+  productId: string;
+  productName: string;
+  targetPriceCents: number;
+  currentLowestCents: number | null;
+  isActive: boolean;
+  triggeredAt: string | null;
+  createdAt: string;
+}
+
 export interface TemplateLineItem {
   productQuery: {
     nominalWidth: number;

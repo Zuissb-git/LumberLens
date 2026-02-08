@@ -17,3 +17,12 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
+
+@media print {
+  nav, footer, button, .no-print {
+    display: none !important;
+  }
+  body {
+    background: white;
+  }
+}

@@ -1,5 +1,7 @@
+import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { FavoriteButton } from "@/components/favorites/favorite-button";
 import { formatCurrency, formatDistance, savingsPercent } from "@/lib/utils";
 import { MapPin, Package, TrendingDown } from "lucide-react";
 import type { SearchResult } from "@/types";
@@ -7,9 +9,10 @@ import type { SearchResult } from "@/types";
 interface ResultCardProps {
   result: SearchResult;
   highestPrice?: number;
+  isFavorited?: boolean;
 }
 
-export function ResultCard({ result, highestPrice }: ResultCardProps) {
+export function ResultCard({ result, highestPrice, isFavorited = false }: ResultCardProps) {
   const savings = highestPrice ? savingsPercent(result.priceCents, highestPrice) : 0;
 
   return (
@@ -18,9 +21,15 @@ export function ResultCard({ result, highestPrice }: ResultCardProps) {
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             {/* Product name */}
-            <h3 className="font-semibold text-stone-900 truncate">
-              {result.productName}
-            </h3>
+            <div className="flex items-center gap-1">
+              <Link
+                href={`/products/${result.productId}`}
+                className="font-semibold text-stone-900 truncate hover:text-green-800 transition-colors"
+              >
+                {result.productName}
+              </Link>
+              <FavoriteButton productId={result.productId} isFavorited={isFavorited} />
+            </div>
 
             {/* Vendor info */}
             <div className="flex items-center gap-2 mt-1">

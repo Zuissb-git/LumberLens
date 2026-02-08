@@ -56,5 +56,18 @@ export async function POST(request: NextRequest) {
     },
   });
 
+  // Check and trigger price alerts
+  await prisma.priceAlert.updateMany({
+    where: {
+      productId,
+      isActive: true,
+      targetPriceCents: { gte: priceCents },
+    },
+    data: {
+      isActive: false,
+      triggeredAt: new Date(),
+    },
+  });
+
   return NextResponse.json(listing, { status: 201 });
 }

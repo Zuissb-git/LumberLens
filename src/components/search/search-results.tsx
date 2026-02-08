@@ -2,6 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import { ResultCard } from "./result-card";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
@@ -20,8 +21,23 @@ interface SearchResponse {
 export function SearchResults() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { data: session } = useSession();
   const [data, setData] = useState<SearchResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [favoritedIds, setFavoritedIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (session?.user) {
+      fetch("/api/favorites")
+        .then((res) => res.json())
+        .then((favs) => {
+          if (Array.isArray(favs)) {
+            setFavoritedIds(new Set(favs.map((f: { productId: string }) => f.productId)));
+          }
+        })
+        .catch(() => {});
+    }
+  }, [session]);
 
   useEffect(() => {
     setLoading(true);
@@ -104,6 +120,7 @@ export function SearchResults() {
             key={result.listingId}
             result={result}
             highestPrice={highestPrice}
+            isFavorited={favoritedIds.has(result.productId)}
           />
         ))}
       </div>

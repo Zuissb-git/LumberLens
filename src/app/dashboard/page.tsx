@@ -6,26 +6,56 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Package, Plus, Search, DollarSign, User, Loader2 } from "lucide-react";
+import { StatsGrid } from "@/components/dashboard/stats-grid";
+import { ActivityFeed } from "@/components/dashboard/activity-feed";
+import { PriceTrends } from "@/components/dashboard/price-trends";
+import { FavoritesPreview } from "@/components/dashboard/favorites-preview";
+import { AlertsPanel } from "@/components/dashboard/alerts-panel";
+import { Package, Plus, Search, DollarSign, Loader2 } from "lucide-react";
+import type { FavoriteWithPrice } from "@/types";
 
-interface BuildOrder {
-  id: string;
-  name: string;
-  lineItems: { id: string }[];
-  lastRepriced: string | null;
-  updatedAt: string;
+interface DashboardData {
+  stats: {
+    tier: string;
+    buildOrderCount: number;
+    pricesSubmittedCount: number;
+    totalSavingsCents: number;
+    activeAlerts: number;
+    triggeredAlerts: number;
+  };
+  recentActivity: {
+    type: string;
+    description: string;
+    timestamp: string;
+    linkHref: string;
+  }[];
+  priceTrends: {
+    productName: string;
+    currentAvgCents: number;
+    thirtyDayAgoAvgCents: number;
+    trendDirection: string;
+    changePercent: number;
+  }[];
+  favorites: FavoriteWithPrice[];
+  recentOrders: {
+    id: string;
+    name: string;
+    lineItemCount: number;
+    lastRepriced: string | null;
+    updatedAt: string;
+  }[];
 }
 
 export default function DashboardPage() {
   const { data: session } = useSession();
-  const [orders, setOrders] = useState<BuildOrder[]>([]);
+  const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/build-orders")
+    fetch("/api/dashboard")
       .then((res) => res.json())
-      .then((data) => {
-        setOrders(Array.isArray(data) ? data : []);
+      .then((json) => {
+        setData(json);
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -48,47 +78,11 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        <Card>
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-              <User className="h-5 w-5 text-green-700" />
-            </div>
-            <div>
-              <p className="text-sm text-stone-500">Account Tier</p>
-              <Badge className="mt-0.5">Free</Badge>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Package className="h-5 w-5 text-blue-700" />
-            </div>
-            <div>
-              <p className="text-sm text-stone-500">Build Orders</p>
-              <p className="text-lg font-semibold text-stone-900">{orders.length}</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
-              <DollarSign className="h-5 w-5 text-amber-700" />
-            </div>
-            <div>
-              <p className="text-sm text-stone-500">Prices Submitted</p>
-              <p className="text-lg font-semibold text-stone-900">0</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Stats */}
+      {data && <StatsGrid stats={data.stats} />}
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8 mb-8">
         <Link href="/search">
           <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
             <CardContent className="p-4 flex items-center gap-3">
@@ -115,51 +109,71 @@ export default function DashboardPage() {
         </Link>
       </div>
 
-      {/* Recent Build Orders */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Recent Build Orders</CardTitle>
-          <Link href="/build-orders">
-            <Button variant="ghost" size="sm">View All</Button>
-          </Link>
-        </CardHeader>
-        <CardContent>
-          {orders.length === 0 ? (
-            <div className="text-center py-8">
-              <Package className="h-8 w-8 text-stone-300 mx-auto mb-2" />
-              <p className="text-stone-500 text-sm">No build orders yet</p>
-              <Link href="/build-orders/new">
-                <Button variant="outline" size="sm" className="mt-3">
-                  Create your first order
-                </Button>
+      {/* Two-column layout for main content */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Left column */}
+        <div className="space-y-6">
+          {data && <ActivityFeed activities={data.recentActivity} />}
+          {data && <PriceTrends trends={data.priceTrends} />}
+        </div>
+
+        {/* Right column */}
+        <div className="space-y-6">
+          {/* Recent Build Orders */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Recent Build Orders</CardTitle>
+              <Link href="/build-orders">
+                <Button variant="ghost" size="sm">View All</Button>
               </Link>
-            </div>
-          ) : (
-            <div className="divide-y divide-stone-100">
-              {orders.slice(0, 5).map((order) => (
-                <Link
-                  key={order.id}
-                  href={`/build-orders/${order.id}`}
-                  className="block py-3 hover:bg-stone-50 -mx-2 px-2 rounded transition-colors"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-stone-900">{order.name}</p>
-                      <p className="text-xs text-stone-500">
-                        {order.lineItems.length} items
-                        {order.lastRepriced && (
-                          <> &middot; Repriced {new Date(order.lastRepriced).toLocaleDateString()}</>
-                        )}
-                      </p>
-                    </div>
-                    <Badge variant="outline">View</Badge>
-                  </div>
-                </Link>
-              ))}
-            </div>
+            </CardHeader>
+            <CardContent>
+              {!data || data.recentOrders.length === 0 ? (
+                <div className="text-center py-8">
+                  <Package className="h-8 w-8 text-stone-300 mx-auto mb-2" />
+                  <p className="text-stone-500 text-sm">No build orders yet</p>
+                  <Link href="/build-orders/new">
+                    <Button variant="outline" size="sm" className="mt-3">
+                      Create your first order
+                    </Button>
+                  </Link>
+                </div>
+              ) : (
+                <div className="divide-y divide-stone-100">
+                  {data.recentOrders.map((order) => (
+                    <Link
+                      key={order.id}
+                      href={`/build-orders/${order.id}`}
+                      className="block py-3 hover:bg-stone-50 -mx-2 px-2 rounded transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-stone-900">{order.name}</p>
+                          <p className="text-xs text-stone-500">
+                            {order.lineItemCount} items
+                            {order.lastRepriced && (
+                              <> &middot; Repriced {new Date(order.lastRepriced).toLocaleDateString()}</>
+                            )}
+                          </p>
+                        </div>
+                        <Badge variant="outline">View</Badge>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {data && <FavoritesPreview favorites={data.favorites} />}
+          {data && (
+            <AlertsPanel
+              activeAlerts={data.stats.activeAlerts}
+              triggeredAlerts={data.stats.triggeredAlerts}
+            />
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
